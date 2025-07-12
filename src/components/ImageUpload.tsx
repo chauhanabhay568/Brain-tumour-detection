@@ -1,7 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useEffect, useState } from "react";
+import { X } from "lucide-react";
 
 interface ImageUploadProps {
   onImageSelect: (file: File) => void;
@@ -10,140 +8,57 @@ interface ImageUploadProps {
   isLoading: boolean;
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({
+export default function ImageUpload({
   onImageSelect,
   onImageRemove,
   selectedImage,
-  isLoading
-}) => {
-  const [dragActive, setDragActive] = useState(false);
+  isLoading,
+}: ImageUploadProps) {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
-      setDragActive(true);
-    } else if (e.type === "dragleave") {
-      setDragActive(false);
+  useEffect(() => {
+    if (selectedImage) {
+      const url = URL.createObjectURL(selectedImage);
+      setPreviewUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setPreviewUrl(null);
     }
-  }, []);
+  }, [selectedImage]);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.type.startsWith('image/')) {
-        onImageSelect(file);
-      }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      onImageSelect(file);
     }
-  }, [onImageSelect]);
-
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      onImageSelect(e.target.files[0]);
-    }
-  }, [onImageSelect]);
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  if (selectedImage) {
-    return (
-      <Card className="border-2 border-dashed border-primary/20">
-        <CardContent className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <ImageIcon className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">{selectedImage.name}</p>
-                  <p className="text-sm text-muted-foreground">{formatFileSize(selectedImage.size)}</p>
-                </div>
-              </div>
-              {!isLoading && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onImageRemove}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-            
-            <div className="relative overflow-hidden rounded-lg border bg-muted/50">
-              <img
-                src={URL.createObjectURL(selectedImage)}
-                alt="Selected MRI scan"
-                className="w-full h-48 object-cover"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card 
-      className={`border-2 border-dashed transition-colors ${
-        dragActive 
-          ? 'border-primary bg-primary/5' 
-          : 'border-border hover:border-primary/50'
-      }`}
-    >
-      <CardContent className="p-8">
-        <div
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          className="text-center space-y-4"
-        >
-          <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
-            <Upload className="w-8 h-8 text-primary" />
-          </div>
-          
-          <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-foreground">Upload MRI Image</h3>
-            <p className="text-muted-foreground">
-              Drag and drop your MRI scan here, or click to browse
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Supports JPEG, PNG formats (max 10MB)
-            </p>
-          </div>
+    <div className="space-y-4">
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        disabled={isLoading}
+        className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:border file:rounded-lg file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+      />
 
-          <div className="pt-2">
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/jpg"
-              onChange={handleFileSelect}
-              className="hidden"
-              disabled={isLoading}
-              id="file-upload"
-            />
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                Choose File
-              </div>
-            </label>
-          </div>
+      {previewUrl && (
+        <div className="relative mt-4">
+          <img
+            src={previewUrl}
+            alt="Selected MRI"
+            className="rounded-lg shadow w-full max-w-md mx-auto"
+          />
+          <button
+            onClick={onImageRemove}
+            disabled={isLoading}
+            className="absolute top-2 right-2 bg-white text-red-500 rounded-full p-1 shadow hover:bg-red-100"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
-};
-
-export default ImageUpload;
+}

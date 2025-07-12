@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { Zap, Upload as UploadIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import ImageUpload from '@/components/ImageUpload';
-import DiagnosisResult from '@/components/DiagnosisResult';
+import React, { useState } from "react";
+import { Zap, Upload as UploadIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import ImageUpload from "@/components/ImageUpload";
+import DiagnosisResult from "@/components/DiagnosisResult";
 
 interface DiagnosisResult {
-  prediction: 'tumor' | 'no_tumor';
+  prediction: "tumor" | "no_tumor";
   confidence: number;
   processingTime?: number;
 }
@@ -21,7 +21,6 @@ const Index = () => {
   const { toast } = useToast();
 
   const handleImageSelect = (file: File) => {
-    // Validate file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
       toast({
         title: "File too large",
@@ -32,7 +31,7 @@ const Index = () => {
     }
 
     setSelectedImage(file);
-    setResult(null); // Clear previous results
+    setResult(null);
     toast({
       title: "Image selected",
       description: `${file.name} is ready for analysis.`,
@@ -58,34 +57,45 @@ const Index = () => {
       return;
     }
 
+    const formData = new FormData();
+    formData.append("file", selectedImage);
+
     setIsLoading(true);
-    const startTime = Date.now();
+    const startTime = performance.now();
 
     try {
-      // Simulate API call to backend model
-      // In a real application, you would send the image to your ML backend
-      await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate processing time
-      
-      const endTime = Date.now();
-      const processingTime = ((endTime - startTime) / 1000).toFixed(1);
+      const response = await fetch("http://127.0.0.1:8000/predict/", {
+        method: "POST",
+        body: formData,
+      });
 
-      // Mock result - in real app, this would come from your backend
-      const mockResult: DiagnosisResult = {
-        prediction: Math.random() > 0.7 ? 'tumor' : 'no_tumor',
-        confidence: 0.85 + Math.random() * 0.14, // 85-99% confidence
-        processingTime: parseFloat(processingTime)
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "Unexpected server error.");
+      }
+
+      const rawPrediction = data.prediction.toLowerCase();
+      const isTumor = !rawPrediction.includes("not");
+
+      const mappedResult: DiagnosisResult = {
+        prediction: isTumor ? "tumor" : "no_tumor",
+        confidence: isTumor ? data.probability : 1 - data.probability,
+        processingTime: Number(
+          ((performance.now() - startTime) / 1000).toFixed(2)
+        ),
       };
 
-      setResult(mockResult);
-      
+      setResult(mappedResult);
+
       toast({
         title: "Analysis complete",
-        description: `Diagnosis completed in ${processingTime}s`,
+        description: `Diagnosis completed in ${mappedResult.processingTime}s`,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Analysis failed",
-        description: "There was an error processing your image. Please try again.",
+        description: error.message || "There was a problem.",
         variant: "destructive",
       });
     } finally {
@@ -96,7 +106,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      
+
       <main className="flex-1 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
@@ -105,8 +115,9 @@ const Index = () => {
               AI-Powered Brain Tumor Detection
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Upload your MRI scan for fast, accurate analysis using advanced machine learning. 
-              Get preliminary results in seconds to support your healthcare decisions.
+              Upload your MRI scan for fast, accurate analysis using advanced
+              machine learning. Get preliminary results in seconds to support
+              your healthcare decisions.
             </p>
           </div>
 
@@ -133,7 +144,7 @@ const Index = () => {
               {selectedImage && (
                 <Card>
                   <CardContent className="p-6">
-                    <Button 
+                    <Button
                       onClick={handleDiagnosis}
                       disabled={isLoading || !selectedImage}
                       className="w-full h-12 text-lg"
@@ -167,45 +178,6 @@ const Index = () => {
                 </CardContent>
               </Card>
             </div>
-          </div>
-
-          {/* Features Section */}
-          <div className="mt-16 grid md:grid-cols-3 gap-6">
-            <Card className="text-center">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Zap className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">Fast Analysis</h3>
-                <p className="text-sm text-muted-foreground">
-                  Get results in seconds with our optimized AI model
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <UploadIcon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">Easy Upload</h3>
-                <p className="text-sm text-muted-foreground">
-                  Simple drag-and-drop interface for all image formats
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center">
-              <CardContent className="p-6">
-                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <div className="w-6 h-6 bg-primary rounded-full" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">High Accuracy</h3>
-                <p className="text-sm text-muted-foreground">
-                  Advanced neural networks trained on medical datasets
-                </p>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </main>
