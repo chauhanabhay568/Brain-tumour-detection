@@ -126,21 +126,18 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           </div>
 
           <div className="pt-2">
-            <label>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/jpg"
-                onChange={handleFileSelect}
-                className="hidden"
-                disabled={isLoading}
-              />
-              <Button 
-                type="button" 
-                disabled={isLoading}
-                className="cursor-pointer"
-              >
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/jpg"
+              onChange={handleFileSelect}
+              className="hidden"
+              disabled={isLoading}
+              id="file-upload"
+            />
+            <label htmlFor="file-upload" className="cursor-pointer">
+              <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
                 Choose File
-              </Button>
+              </div>
             </label>
           </div>
         </div>
