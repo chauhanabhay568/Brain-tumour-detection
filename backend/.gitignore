@@ -8,7 +8,6 @@ __pycache__/
 *.pyd
 
 # Ignore model and large data files if not needed for versioning
-*.h5
 *.hdf5
 
 # Ignore environment variables if you add them later
