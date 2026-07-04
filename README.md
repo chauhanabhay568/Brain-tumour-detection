@@ -1,73 +1,98 @@
-# Welcome to your Lovable project
+# Brain Tumour Detection
 
-## Project info
+A full-stack web application that detects brain tumours in MRI scans. Upload an MRI image and the app returns a diagnosis ("Tumor is present" / "Tumor is not present") with a probability score.
 
-**URL**: https://lovable.dev/projects/906fe0f4-7e49-401e-9ae0-25ebd82909ba
+## Architecture
 
-## How can I edit this code?
+- **Frontend** — React + TypeScript (Vite, shadcn-ui, Tailwind CSS), in the project root.
+- **Backend** — FastAPI server (`backend/main.py`) that loads a pre-trained Keras CNN (`backend/bestm.h5`) and exposes a `POST /predict/` endpoint.
+- **Model** — Binary classifier with a single sigmoid output, trained on 240×240 brain MRI images. Preprocessing (`backend/preprocessing.py`) crops the brain region via contour detection before resizing.
 
-There are several ways of editing your application.
+## Requirements
 
-**Use Lovable**
+- Node.js & npm (frontend)
+- [uv](https://docs.astral.sh/uv/) (backend Python environment)
+- Python 3.11 (installed automatically by uv)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/906fe0f4-7e49-401e-9ae0-25ebd82909ba) and start prompting.
+> **Note:** TensorFlow is pinned to `2.15.1` in `backend/requirements.txt`. This is the last release bundled with Keras 2, which is required to load `bestm.h5` — newer TensorFlow ships Keras 3 and cannot deserialize this model.
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Backend setup
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+cd backend
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Create a Python 3.11 virtual environment
+uv venv --python 3.11 .venv
 
-# Step 3: Install the necessary dependencies.
+# Install dependencies
+uv pip install --python .venv/bin/python -r requirements.txt
+
+# Start the API server
+source .venv/bin/activate
+uvicorn main:app --reload --port 8001
+```
+
+Test the endpoint:
+
+```sh
+curl -X POST -F "file=@path/to/mri.jpg" http://127.0.0.1:8001/predict/
+# → {"prediction": "Tumor is present", "probability": 0.99}
+```
+
+## Frontend setup
+
+```sh
 npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## API
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+| Method | Endpoint | Body | Response |
+|---|---|---|---|
+| POST | `/predict/` | multipart form, `file` = MRI image (jpg/png) | `{"prediction": string, "probability": float}` |
 
-**Use GitHub Codespaces**
+## Model evaluation
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+`backend/evaluate.py` evaluates the model on a labelled dataset laid out as `yes/` (tumour) and `no/` (no tumour) subfolders, using the same preprocessing as the serving pipeline:
 
-## What technologies are used for this project?
+```sh
+cd backend
+.venv/bin/python evaluate.py --data-dir path/to/dataset
+```
 
-This project is built with:
+Artifacts (`metrics.json`, `classification_report.txt`, `confusion_matrix.png`) are written to `backend/outputs/`.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Results
 
-## How can I deploy this project?
+Evaluated on the standard Brain MRI dataset (253 images: 155 tumour, 98 no-tumour):
 
-Simply open [Lovable](https://lovable.dev/projects/906fe0f4-7e49-401e-9ae0-25ebd82909ba) and click on Share -> Publish.
+| Metric | Value |
+|---|---|
+| Accuracy | 92.5% |
+| Precision (Tumour) | 98.6% |
+| Recall / Sensitivity | 89.0% |
+| Specificity | 98.0% |
+| F1-score | 93.6% |
+| ROC-AUC | 0.977 |
 
-## Can I connect a custom domain to my Lovable project?
+The model correctly identified 138/155 tumour scans and 96/98 healthy scans. Note that the model was likely trained on part of this dataset, so these numbers are optimistic relative to fully unseen data.
 
-Yes, you can!
+## Project structure
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```
+├── src/                    # React frontend
+├── backend/
+│   ├── main.py             # FastAPI server (POST /predict/)
+│   ├── preprocessing.py    # Contour-crop + resize pipeline, dataset loading
+│   ├── evaluate.py         # Evaluate bestm.h5 on a labelled dataset
+│   ├── evaluation.py       # Metrics, confusion matrix, reports
+│   ├── train.py            # Training pipeline
+│   ├── bestm.h5            # Pre-trained Keras model (240×240×3 input)
+│   └── requirements.txt    # Python dependencies (TensorFlow 2.15.1)
+└── package.json            # Frontend dependencies
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Disclaimer
+
+This project is for educational purposes only and must not be used for actual medical diagnosis.

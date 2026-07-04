@@ -9,6 +9,8 @@ __pycache__/
 
 # Ignore model and large data files if not needed for versioning
 *.hdf5
+dataset/
+outputs/
 
 # Ignore environment variables if you add them later
 .env

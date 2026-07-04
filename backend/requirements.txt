@@ -2,7 +2,9 @@ fastapi
 uvicorn
 pillow
 numpy
-tensorflow
+tensorflow==2.15.1
 opencv-python-headless
 python-multipart
 imutils
+scikit-learn
+matplotlib
